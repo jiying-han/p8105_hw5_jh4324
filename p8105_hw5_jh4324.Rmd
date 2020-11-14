@@ -27,7 +27,7 @@ scale_fill_discrete = scale_fill_viridis_d
 
 This is my solution for HW5
 
-# Problem 1
+## Problem 1
 
 read in the data
 ```{r}
@@ -41,7 +41,8 @@ homicide_df =
     )
   ) %>% 
   select(city_state, resolved) %>% 
-  filter(city_state != "Tulsa_AL")
+  filter(city_state != "Tulsa_AL") %>%
+  nest(data = resolved) 
 
 ```
 
@@ -91,3 +92,23 @@ result_df %>%
 ```
 
 
+## Problem 2
+
+
+import one dataset
+```{r error = TRUE}
+path_df =
+  tibble(
+  path = list.files("./data/data2")
+) %>% 
+  mutate(path = str_c("./data/data2/", path),
+         data = map())
+  
+read_csv(path_df$path[1])
+
+# EVERYTHING IN ONE TABLE
+
+```
+
+
+## Problem 3
