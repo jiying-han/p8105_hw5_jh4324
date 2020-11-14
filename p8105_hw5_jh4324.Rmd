@@ -7,6 +7,7 @@ output: github_document
 
 ```{r setup, include=FALSE}
 library(tidyverse)
+library(stats)
 
 knitr::opts_chunk$set(
 	fig.width = 6, 
@@ -32,24 +33,25 @@ This is my solution for HW5
 read in the data
 ```{r}
 homicide_df = 
-  read.csv("./data/homicide-data.csv") %>% mutate(
+  read.csv("./data/homicide-data.csv") %>%
+  mutate(
     city_state = str_c(city, state, sep = "_"),
     resolved = case_when(
       disposition == "Closed without arrest"~"unsolved",
       disposition == "Open/No arrest"~"unsolved",
       disposition == "Closed by arrest"~"solved"
     )
-  ) %>% 
+   ) %>% 
   select(city_state, resolved) %>% 
-  filter(city_state != "Tulsa_AL") %>%
-  nest(data = resolved) 
+  filter(city_state != "Tulsa_AL") 
 
 ```
 
-let's look at this a bot
+let's look at this a bit
 
 ```{r}
-aggregate_df = homicide_df %>% 
+aggregate_df = 
+  homicide_df %>% 
   group_by(city_state) %>% 
   summarize(
     hom_total = n(),
@@ -102,13 +104,47 @@ path_df =
   path = list.files("./data/data2")
 ) %>% 
   mutate(path = str_c("./data/data2/", path),
-         data = map())
-  
-read_csv(path_df$path[1])
+         observations = map(.x = path, ~read_csv(.x))
+         ) %>% 
+  separate(path,c("subject_id","format"),sep = ".csv" ) %>% 
+  separate(subject_id,c("format","subject_id"),sep = "2/" ) %>% 
+  select(-format) %>% 
+  separate(subject_id,c("arm","subject_id"),sep = "_") %>% 
+  mutate(
+  arm = case_when(
+      arm == "con"~"control",
+      arm == "exp"~"experiment"
+    )) %>% 
+  unnest(observations) %>% 
+  pivot_longer(
+    week_1:week_8,
+    names_to = "week",
+    values_to ="observations"
+  ) %>% 
+  mutate(
+    week = str_replace(week,"week_",""),
+    week = as.factor(week)) 
 
-# EVERYTHING IN ONE TABLE
-
+path_df %>% knitr::kable()
 ```
 
 
-## Problem 3
+make a spaghetti plot
+```{r error = TRUE}
+spaghetti_plot = 
+  path_df %>%
+  unite("subjects", c(arm, subject_id), sep = "_", remove = TRUE, na.rm = FALSE) %>% 
+  ggplot(aes(x = week, y = observations, group = subjects, color = subjects)) + 
+  geom_path()
+
+ggsave("spaghetti_plot.jpg")
+```
+
+Comment: In these eight weeks, we can finds that in experimental groups, the overall  observational values are higher than the control groups. And the trend of the experimental groups is increasing. As for the control groups, the trend is approximately fluctuate without apparent increasing or decreasing.
+
+## Problem 3 (simulation - ttest -  estimate - pvalue - plot/summarize of pvalue and estiamte by significant different or not)
+
+
+
+
+
