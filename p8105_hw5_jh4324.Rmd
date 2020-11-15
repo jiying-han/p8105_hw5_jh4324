@@ -8,6 +8,7 @@ output: github_document
 ```{r setup, include=FALSE}
 library(tidyverse)
 library(stats)
+library(purrr)
 
 knitr::opts_chunk$set(
 	fig.width = 6, 
@@ -138,13 +139,32 @@ spaghetti_plot =
   geom_path()
 
 ggsave("spaghetti_plot.jpg")
+
+spaghetti_plot
 ```
 
 Comment: In these eight weeks, we can finds that in experimental groups, the overall  observational values are higher than the control groups. And the trend of the experimental groups is increasing. As for the control groups, the trend is approximately fluctuate without apparent increasing or decreasing.
 
 ## Problem 3 (simulation - ttest -  estimate - pvalue - plot/summarize of pvalue and estiamte by significant different or not)
 
+generate dataset
 
+```{r}
+df = rerun(5000, map(.x = 0, ~rnorm(n = 30, mean = (.x), sd = 5)))
+
+nd_ttest = function(mu){
+  tibble(x = rnorm(mean = mu, n =30, sd =5)) %>% 
+  t.test() %>% 
+  broom::tidy() %>%       select(estimate,p.value)
+}
+
+sample_df = 
+  rerun(5000,map(.x = 0, ~nd_ttest(.x))) %>% bind_rows()
+
+sample_df %>% head()
+
+
+```
 
 
 
