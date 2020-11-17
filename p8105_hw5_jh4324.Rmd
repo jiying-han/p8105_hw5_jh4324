@@ -147,24 +147,149 @@ Comment: In these eight weeks, we can finds that in experimental groups, the ove
 
 ## Problem 3 (simulation - ttest -  estimate - pvalue - plot/summarize of pvalue and estiamte by significant different or not)
 
-generate dataset
+Generate dataset
 
 ```{r}
+set.seed(1000)
 df = rerun(5000, map(.x = 0, ~rnorm(n = 30, mean = (.x), sd = 5)))
 
 nd_ttest = function(mu){
-  tibble(x = rnorm(mean = mu, n =30, sd =5)) %>% 
-  t.test() %>% 
-  broom::tidy() %>%       select(estimate,p.value)
+  norm_df = 
+    tibble(x = rnorm(mean = mu, n =30, sd = 5)) 
+  
+  norm_df %>% summarize(
+    t.test(x, mean = 0,conf.level = 0.95) %>% 
+    broom::tidy() %>%
+    select(estimate,p.value)
+                       )
+   
 }
 
-sample_df = 
-  rerun(5000,map(.x = 0, ~nd_ttest(.x))) %>% bind_rows()
+set.seed(1000)
+sample_df = function(mu){
+  rerun(5000,map(.x = mu, ~nd_ttest(.x))) %>% 
+  bind_rows()
+}
 
-sample_df %>% head()
+sample_df(0)
+```
 
+
+Repeat the above
+
+```{r}
+set.seed(1000)
+mu_df = 
+  tibble(
+    mu = c(0,1,2,3,4,5,6)
+      ) %>% 
+  mutate(
+    output_lists = map(.x = mu, ~sample_df(.x))
+  )
 
 ```
 
+
+Summarize 
+
+```{r}
+set.seed(1000)
+mureject_df = 
+  mu_df %>% 
+  unnest(output_lists) %>% 
+  mutate(mu = as.numeric(mu)) %>% 
+  group_by(mu) %>% 
+  mutate(
+    reject = case_when(
+      p.value >= "0.05" ~1,
+      p.value <= "0.05"~ 0
+    )
+  )  %>% 
+  mutate(
+    mu = as.factor(mu),
+    reject = as.numeric(reject)) %>% 
+  select(mu,reject) %>% 
+  group_by(mu) %>% 
+  summarize(
+    test_total = n(),
+    reject_total = sum(reject == "1" ),
+    proportion = reject_total/test_total
+  )
+    
+
+```
+
+
+plot - proportion of time the null was rejected
+
+```{r}
+set.seed(1000)
+mureject_df %>% 
+  mutate(mu = as.numeric(mu)) %>% 
+  ggplot(aes( x = mu , y = proportion), color = mu) + 
+  geom_point() +
+  geom_line() +
+  labs(
+    title = "Association between effect size and power",
+    x = "True μ",
+    y = "Proportion of times the null was rejected"
+  )
+  
+```
+
+Describe the association between effect size and power.
+
+
+
+plot - Average estimate of μ hat and true value of μ
+```{r}
+ mu_df %>% 
+  unnest(output_lists) %>% 
+  mutate(mu = as.numeric(mu)) %>% 
+  group_by(mu) %>% 
+  summarize(
+    average_estimate = mean(estimate)
+  ) %>% 
+  ggplot(aes(x = mu, y = average_estimate)) +
+  geom_point() +
+  geom_line() +
+  labs(
+    title = "Average estimate of μ hat and true value of μ",
+    x = "True value of μ",
+    y = "Average estimate of μ hat "
+   )
+```
+
+
+plot - Average estimate of μ hat only in samples for which the null was rejected and true value of μ 
+```{r}
+mu_df %>% 
+  unnest(output_lists) %>% 
+  mutate(
+    mu = as.numeric(mu),
+    reject = case_when(
+      p.value >= "0.05" ~1,
+      p.value <= "0.05"~ 0
+    )
+  ) %>% 
+  filter(reject == "0") %>% 
+  group_by(mu) %>% 
+  summarize(
+    average_estimate = mean(estimate)
+   ) %>% 
+  ggplot(aes( x = mu, y = average_estimate)) +
+  geom_point() +
+  geom_line() +
+  labs(
+    title = "Average estimate of μ hat only in samples for which the null was rejected and true value of μ ",
+    x = "True value of μ",
+    y = "Average estimate of μ hat"
+  )
+```
+
+
+Is the sample average of μ̂
+ across tests for which the null is rejected approximately equal to the true value of μ
+? Why or why not?
 
 
