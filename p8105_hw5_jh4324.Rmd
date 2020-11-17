@@ -1,7 +1,6 @@
 ---
 title: "p8105_hw5_jh4324"
 author: "Jiying Han"
-date: "11/13/2020"
 output: github_document
 ---
 
@@ -98,8 +97,8 @@ result_df %>%
 ## Problem 2
 
 
-import one dataset
-```{r error = TRUE}
+Import one dataset
+```{r  message = FALSE, include=FALSE}
 path_df =
   tibble(
   path = list.files("./data/data2")
@@ -130,7 +129,7 @@ path_df %>% knitr::kable()
 ```
 
 
-make a spaghetti plot
+Make a spaghetti plot
 ```{r error = TRUE}
 spaghetti_plot = 
   path_df %>%
@@ -151,20 +150,22 @@ Generate dataset
 
 ```{r}
 set.seed(1000)
-df = rerun(5000, map(.x = 0, ~rnorm(n = 30, mean = (.x), sd = 5)))
 
 nd_ttest = function(mu){
   norm_df = 
     tibble(x = rnorm(mean = mu, n =30, sd = 5)) 
   
-  norm_df %>% summarize(
-    t.test(x, mean = 0,conf.level = 0.95) %>% 
-    broom::tidy() %>%
-    select(estimate,p.value)
-                       )
+  norm_df %>% 
+    summarize(
+      t.test(x, mean = 0,conf.level = 0.95) %>% 
+      broom::tidy() %>%
+      select(estimate,p.value)
+                         )
    
 }
+nd_ttest(0)
 
+ 
 set.seed(1000)
 sample_df = function(mu){
   rerun(5000,map(.x = mu, ~nd_ttest(.x))) %>% 
@@ -178,7 +179,7 @@ sample_df(0)
 Repeat the above
 
 ```{r}
-set.seed(1000)
+set.seed(10000)
 mu_df = 
   tibble(
     mu = c(0,1,2,3,4,5,6)
@@ -193,7 +194,7 @@ mu_df =
 Summarize 
 
 ```{r}
-set.seed(1000)
+set.seed(10000)
 mureject_df = 
   mu_df %>% 
   unnest(output_lists) %>% 
@@ -201,15 +202,14 @@ mureject_df =
   group_by(mu) %>% 
   mutate(
     reject = case_when(
-      p.value >= "0.05" ~1,
-      p.value <= "0.05"~ 0
+      p.value >= 0.05~ 0,
+      p.value < 0.05~ 1
     )
   )  %>% 
   mutate(
     mu = as.factor(mu),
     reject = as.numeric(reject)) %>% 
   select(mu,reject) %>% 
-  group_by(mu) %>% 
   summarize(
     test_total = n(),
     reject_total = sum(reject == "1" ),
@@ -220,28 +220,29 @@ mureject_df =
 ```
 
 
-plot - proportion of time the null was rejected
+Plot - proportion of time the null was rejected
 
 ```{r}
 set.seed(1000)
 mureject_df %>% 
-  mutate(mu = as.numeric(mu)) %>% 
-  ggplot(aes( x = mu , y = proportion), color = mu) + 
+  mutate(mu = as.numeric(mu)-1) %>% 
+  ggplot(aes( x = mu , y = proportion, color = mu)) + 
   geom_point() +
   geom_line() +
   labs(
     title = "Association between effect size and power",
     x = "True μ",
-    y = "Proportion of times the null was rejected"
+    y = "Proportion of times the null was rejected (Power)"
   )
   
 ```
 
 Describe the association between effect size and power.
+With the effect size increasing, the proportion of times the null was rejected rapidly increasing, then after the true μ = 4, it becomes steady. And it reaches 1 when true μ = 5.
 
 
+Plot - Average estimate of μ hat and true value of μ
 
-plot - Average estimate of μ hat and true value of μ
 ```{r}
  mu_df %>% 
   unnest(output_lists) %>% 
@@ -250,7 +251,7 @@ plot - Average estimate of μ hat and true value of μ
   summarize(
     average_estimate = mean(estimate)
   ) %>% 
-  ggplot(aes(x = mu, y = average_estimate)) +
+  ggplot(aes(x = mu, y = average_estimate, color = mu)) +
   geom_point() +
   geom_line() +
   labs(
@@ -261,23 +262,23 @@ plot - Average estimate of μ hat and true value of μ
 ```
 
 
-plot - Average estimate of μ hat only in samples for which the null was rejected and true value of μ 
+Plot - Average estimate of μ hat only in samples for which the null was rejected and true value of μ 
 ```{r}
 mu_df %>% 
   unnest(output_lists) %>% 
   mutate(
     mu = as.numeric(mu),
     reject = case_when(
-      p.value >= "0.05" ~1,
-      p.value <= "0.05"~ 0
+      p.value >= 0.05 ~1,
+      p.value < 0.05~ 0
     )
   ) %>% 
-  filter(reject == "0") %>% 
+  filter(reject == 0) %>% 
   group_by(mu) %>% 
   summarize(
     average_estimate = mean(estimate)
    ) %>% 
-  ggplot(aes( x = mu, y = average_estimate)) +
+  ggplot(aes( x = mu, y = average_estimate, color =mu )) +
   geom_point() +
   geom_line() +
   labs(
@@ -288,8 +289,5 @@ mu_df %>%
 ```
 
 
-Is the sample average of μ̂
- across tests for which the null is rejected approximately equal to the true value of μ
-? Why or why not?
 
-
+The average estimate of μ hat equal to true μ. But as for average estimate of μ hat only in samples for which the null was rejected, it only equals to true mu when mu = 4-6. When true mu = 0-3, especially when mu close to 0, the number of samples for which the null was rejected becomes less(draw from the first plot), and within these samples, the estimate of mu hat is away from true mu, thus it isn't equal to the true mu. For true mu approach to 6, more and more samples are rejected, and most estimate of mu hat far away from true mu, therefore, the average estimate of mu hat in samples for which the null was rejected is much closer to true mu and even equal to true mu.
