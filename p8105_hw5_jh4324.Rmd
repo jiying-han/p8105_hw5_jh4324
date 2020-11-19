@@ -133,9 +133,13 @@ Make a spaghetti plot
 ```{r error = TRUE}
 spaghetti_plot = 
   path_df %>%
-  unite("subjects", c(arm, subject_id), sep = "_", remove = TRUE, na.rm = FALSE) %>% 
-  ggplot(aes(x = week, y = observations, group = subjects, color = subjects)) + 
-  geom_path()
+  ggplot(aes(x = week, y = observations, group = arm, color = arm)) + 
+  geom_path() +
+  labs(
+    title = "Observations of control group and experimental group",
+    x = "Week",
+    y = "Observation"
+  )
 
 ggsave("spaghetti_plot.jpg")
 
