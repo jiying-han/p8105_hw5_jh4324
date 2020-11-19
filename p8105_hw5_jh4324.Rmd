@@ -98,7 +98,7 @@ result_df %>%
 
 
 Import one dataset
-```{r  message = FALSE, include=FALSE}
+```{r  message = FALSE}
 path_df =
   tibble(
   path = list.files("./data/data2")
@@ -125,7 +125,6 @@ path_df =
     week = str_replace(week,"week_",""),
     week = as.factor(week)) 
 
-path_df %>% knitr::kable()
 ```
 
 
